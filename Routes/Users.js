@@ -13,11 +13,12 @@ const List = require('../models/List');
 const upload = multer({ dest: 'uploads/' });
 
 router.post('/users/upload/:listId', upload.single('file'), async (req, res) => {
-    
+
     const { listId } = req.params;
     const filePath = req.file.path;
 
     if (!mongoose.Types.ObjectId.isValid(listId)) {
+
         fs.unlink(filePath, (err) => {
             if (err) {
                 console.error('Failed to delete uploaded file:', err);
@@ -28,6 +29,7 @@ router.post('/users/upload/:listId', upload.single('file'), async (req, res) => 
 
     try {
         const list = await List.findById(listId);
+
         if (!list) {
             fs.unlink(filePath, (err) => {
                 if (err) {
@@ -44,9 +46,7 @@ router.post('/users/upload/:listId', upload.single('file'), async (req, res) => 
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (row) => {
-
-                    // I tried a lot with normal row, but I failed, so I trimmed
-
+                    
                     const cleanedRow = {};
                     for (let key in row) {
                         const trimmedKey = key.trim();
@@ -60,6 +60,13 @@ router.post('/users/upload/:listId', upload.single('file'), async (req, res) => 
                     list.customProperties.forEach(prop => {
                         user.customProperties[prop.title] = cleanedRow[prop.title] || prop.fallback;
                     });
+                    
+                    // If there is some additional rows of users, I am going to store that
+                    Object.keys(cleanedRow).forEach(key => {
+                        if (key !== 'name' && key !== 'email' && !user.customProperties.hasOwnProperty(key)) {
+                            user.customProperties[key] = cleanedRow[key];
+                        }
+                    });
 
                     users.push(user);
                 })
@@ -68,15 +75,13 @@ router.post('/users/upload/:listId', upload.single('file'), async (req, res) => 
         });
 
         for (let user of users) {
-
             try {
-               
-                const existingUser = await User.findOne({ email: user.email });
+                const existingUser = await User.findOne({ email: user.email });         // Checking to ensure no duplicated allowed here.
                 if (existingUser) {
                     throw new Error('Email already exists');
                 }
-
                 await User.create(user);
+
             } catch (err) {
                 console.log(user, err.message);
                 errors.push({ user, error: err.message });
@@ -89,9 +94,10 @@ router.post('/users/upload/:listId', upload.single('file'), async (req, res) => 
             }
         });
 
-        for (let err of errors) {
-            console.log(err);
-        }
+        // The below is for debugging
+        // for (let err of errors) {
+        //     console.log(err);
+        // }
 
         res.status(201).json({
             added: users.length - errors.length,
