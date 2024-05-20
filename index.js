@@ -5,10 +5,10 @@ const bodyParser = require('body-parser');
 
 const mongoDB = require("./db.js");
 
-const list_Routes = require('./Routes/Lists');
-const user_Routes = require('./Routes/Users');
-const email_Routes = require('./Routes/Email');
-const unsubscribe_Routes = require('./Routes/Unsubscribe');
+const list_Routes = require('./Controllers/Lists');
+const user_Routes = require('./Controllers/Users');
+const email_Routes = require('./Controllers/Email');
+const unsubscribe_Routes = require('./Controllers/Unsubscribe');
 
 dotenv.config();
 
